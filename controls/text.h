@@ -13,6 +13,7 @@ class CLASSEXPORT TextEntry : public Panel, public InputSignal
 {
 public:
 	TextEntry( const char*, int, int, int, int);
+	virtual bool isWithin( int x, int y ) override;
 	virtual void setText( const char*, int );
 	virtual void getText( int, char*, int);
 	virtual void resetCursorBlink();

@@ -85,6 +85,13 @@ int XashSurface::createNewTextureID()
 
 void XashSurface::GetMousePos( int &x, int &y )
 {
+	if( g_lastCursorPosValid )
+	{
+		x = g_lastCursorPos[0];
+		y = g_lastCursorPos[1];
+		return;
+	}
+
 	g_engine->GetCursorPos( &x, &y );
 }
 

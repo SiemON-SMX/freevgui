@@ -7,9 +7,20 @@
 #include "app.h"
 #include "text.h"
 #include "font.h"
+#if defined( INTERNAL_VGUI_SUPPORT )
+#include "platform/xash3d-fwgs/support.h"
+#endif
 
 namespace vgui
 {
+// shows the android keyboard when a text field gets focus
+static void TextEntry_EnableTextInput( bool enable, bool force )
+{
+#if defined( INTERNAL_VGUI_SUPPORT )
+	XashEnableTextInput( enable, force );
+#endif
+}
+
 TextEntry::TextEntry( const char *str, int x, int y, int w, int h ) : Panel( x, y, w, h ),
 	cursorPos( 0 ), hideText( false ), cursorBlinkRate( 400 ), font( nullptr )
 {
@@ -18,11 +29,25 @@ TextEntry::TextEntry( const char *str, int x, int y, int w, int h ) : Panel( x, 
 	resetCursorBlink();
 	setText( str, strlen( str ));
 	addInputSignal( this );
-	addFocusChangeSignal( makeFocusChangeHandler([this]( bool, Panel * )
+	addFocusChangeSignal( makeFocusChangeHandler([this]( bool lost, Panel * )
 	{
 		resetCursorBlink();
 		doSelectNone();
+		TextEntry_EnableTextInput( !lost, false );
 	}));
+}
+
+bool TextEntry::isWithin( int x, int y )
+{
+	if( Panel::isWithin( x, y ))
+		return true;
+
+	int wide, tall;
+	getSize( wide, tall );
+	screenToLocal( x, y );
+
+	int pad = tall / 2;
+	return x >= 0 && x < wide && y >= -pad && y < tall + pad;
 }
 
 void TextEntry::setText( const char *text, int len )
@@ -340,6 +365,7 @@ void TextEntry::mousePressed( MouseCode, Panel* )
 {
 	resetCursorBlink();
 	requestFocus();
+	TextEntry_EnableTextInput( true, true );
 	repaint();
 }
 
@@ -350,7 +376,7 @@ void TextEntry::mouseDoublePressed( MouseCode, Panel* )
 
 void TextEntry::mouseReleased( MouseCode, Panel* )
 {
-
+	TextEntry_EnableTextInput( true, true );
 }
 
 void TextEntry::mouseWheeled( int, Panel* )

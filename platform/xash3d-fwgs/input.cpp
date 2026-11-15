@@ -38,9 +38,21 @@ void vgui::XashMouse( VGUI_MouseAction action, int code )
 	switch( action )
 	{
 	case MA_PRESSED:
+		{
+			int x, y;
+
+			g_surface->GetMousePos( x, y );
+			app->internalCursorMoved( x, y, g_surface );
+		}
 		app->internalMousePressed( (MouseCode)code, g_surface );
 		break;
 	case MA_RELEASED:
+		{
+			int x, y;
+
+			g_surface->GetMousePos( x, y );
+			app->internalCursorMoved( x, y, g_surface );
+		}
 		app->internalMouseReleased( (MouseCode)code, g_surface );
 		break;
 	case MA_DOUBLE:
@@ -52,8 +64,21 @@ void vgui::XashMouse( VGUI_MouseAction action, int code )
 	}
 }
 
+void vgui::XashEnableTextInput( bool enable, bool force )
+{
+	if( g_engine && g_engine->EnableTextInput )
+		g_engine->EnableTextInput( enable ? 1 : 0, force ? 1 : 0 );
+}
+
+int vgui::g_lastCursorPos[2];
+bool vgui::g_lastCursorPosValid = false;
+
 void vgui::XashMouseMove( int x, int y )
 {
+	g_lastCursorPos[0] = x;
+	g_lastCursorPos[1] = y;
+	g_lastCursorPosValid = true;
+
 	if( !g_surface )
 		return;
 
@@ -61,7 +86,51 @@ void vgui::XashMouseMove( int x, int y )
 	App::getInstance()->internalCursorMoved( x, y, g_surface );
 }
 
-void vgui::XashTextInput( const char * )
+// text from the android keyboard, turn it into normal key presses
+void vgui::XashTextInput( const char *text )
 {
-	// stub, VGUI has no concept of text input
+	if( !text || !g_surface )
+		return;
+
+	App *app = App::getInstance();
+	if( !app )
+		return;
+
+	for( const unsigned char *p = (const unsigned char *)text; *p; ++p )
+	{
+		if( *p == '\b' || *p == 0x7f )
+		{
+			app->internalKeyTyped( KEY_BACKSPACE, g_surface );
+			continue;
+		}
+
+		if( *p == '\r' || *p == '\n' )
+		{
+			app->internalKeyTyped( KEY_ENTER, g_surface );
+			continue;
+		}
+
+		if( *p < 0x20 || *p > 0x7e )
+			continue;
+
+		bool found = false;
+		for( int key = KEY_0; key < KEY_LAST && !found; ++key )
+		{
+			for( int shift = 0; shift <= 1; ++shift )
+			{
+				if( app->getKeyCodeChar( (KeyCode)key, shift != 0 ) != (char)*p )
+					continue;
+
+				if( shift )
+					app->internalKeyPressed( KEY_LSHIFT, g_surface );
+				app->internalKeyPressed( (KeyCode)key, g_surface );
+				app->internalKeyTyped( (KeyCode)key, g_surface );
+				app->internalKeyReleased( (KeyCode)key, g_surface );
+				if( shift )
+					app->internalKeyReleased( KEY_LSHIFT, g_surface );
+				found = true;
+				break;
+			}
+		}
+	}
 }

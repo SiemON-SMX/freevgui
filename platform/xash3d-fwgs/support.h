@@ -17,7 +17,11 @@ namespace vgui
 class Font;
 class XashSurface;
 
-extern const vgui_support_api_t *g_engine; // the engine half of the API. The structure is owned by the engine, we only keep the pointer
+extern vguiapi_t *g_engine; // the engine half of the API. The structure is owned by the engine, we only keep the pointer
+extern int g_lastCursorPos[2];
+extern bool g_lastCursorPosValid;
+
+void XashEnableTextInput( bool enable, bool force );
 
 // the root panel the game client library parents its own panels to, and the surface that draws it
 extern Panel *g_rootPanel;
